@@ -1,12 +1,11 @@
-version: '3'
+version: '3.5'
+
 services:
-  redis:
-    image: redis:6.0.5
-    ports:
-      - 6379:6379/tcp
 
   server:
     build: opentelemetry-jedis-http-impl/.
+    networks:
+      - net
     depends_on:
       - redis
       - jaeger
@@ -17,8 +16,19 @@ services:
       JAEGERAGENTENDPOINT: http://jaeger:14268
     command: ['java -jar app.jar']
 
+  redis:
+    image: redis:6.0.5
+    ports:
+      - 6379:6379
+    networks:
+      - net
+
   jaeger:
     image: jaegertracing/opentelemetry-all-in-one
     ports:
       - 14268:14268
       - 16686:16686
+
+networks:
+  net:
+    driver: bridge
