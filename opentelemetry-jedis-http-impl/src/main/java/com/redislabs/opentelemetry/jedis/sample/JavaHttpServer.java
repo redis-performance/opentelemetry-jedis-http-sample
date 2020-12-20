@@ -3,7 +3,17 @@ package com.redislabs.opentelemetry.jedis.sample;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.TracerProvider;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.exporter.jaeger.JaegerGrpcSpanExporter;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,9 +22,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.json.JSONObject;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -26,12 +34,44 @@ public class JavaHttpServer {
 
   public static final int HTTP_PORT = 7777;
 
+  public static final String REDIS_HOST = "redis";
+  public static final int REDIS_PORT = 6379;
+
+  public static final String JAEGER_HOST = "jaeger";
+//  public static final int JAEGER_PORT = 14268;
+  public static final int JAEGER_PORT = 14250;
+
+  static final TracerProvider tracerProvider = OpenTelemetry.getGlobalTracerProvider();
+  static final Tracer tracer = tracerProvider.get("com.redislabs.opentelemetry.jedis.sample.JavaHttpServer");
+
   public static void main(String[] args) throws Exception {
+    setupJaegerExporter();
     HttpServer server = HttpServer.create(new InetSocketAddress(HTTP_PORT), 0);
     server.createContext(AuthorHandler.AUTHOR_CONTEXT_PATH, new AuthorHandler());
     server.setExecutor(null); // creates a default executor
     server.start();
     System.out.println("HTTP server started.");
+  }
+
+  private static void setupJaegerExporter() {
+    // Create a channel towards Jaeger end point
+    ManagedChannel jaegerChannel = ManagedChannelBuilder.forAddress(JAEGER_HOST, JAEGER_PORT).usePlaintext().build();
+    // Export traces to Jaeger
+    // Export traces to Jaeger
+    JaegerGrpcSpanExporter jaegerExporter
+        = JaegerGrpcSpanExporter.builder()
+            .setServiceName("otel-jedis")
+            .setChannel(jaegerChannel)
+            .setDeadlineMs(30000)
+            .build();
+
+    // Set to process the spans by the Jaeger Exporter
+    OpenTelemetrySdk.getGlobalTracerManagement().addSpanProcessor(SimpleSpanProcessor.builder(jaegerExporter).build());
+  }
+
+  // graceful shutdown
+  public static void shutdown() {
+    OpenTelemetrySdk.getGlobalTracerManagement().shutdown();
   }
 
   private static class AuthorHandler implements HttpHandler {
@@ -41,11 +81,12 @@ public class JavaHttpServer {
     private static final String USERNAME_KEY = "Username";
     private static final String ABOUT_KEY = "About";
 
-    private final JedisPool jedisPool = new JedisPool("redis", 6379);
+    private final JedisPool jedisPool = new JedisPool(REDIS_HOST, REDIS_PORT);
 
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
-      try {
+      Span span = tracer.spanBuilder("my span").startSpan();
+      try (Scope scope = span.makeCurrent()) {
         String requestUri = httpExchange.getRequestURI().toString();
         String param = requestUri.substring(requestUri.indexOf(AUTHOR_CONTEXT_PATH) + AUTHOR_CONTEXT_PATH.length());
 
@@ -65,7 +106,10 @@ public class JavaHttpServer {
       } catch (IOException ioe) {
         throw ioe;
       } catch (Exception ex) {
+        span.setStatus(StatusCode.ERROR, ex.getMessage());
         handleResponse(httpExchange, 500, "Server error");
+      } finally {
+        span.end();
       }
     }
 

@@ -13,7 +13,8 @@ services:
       - 7777:7777
     environment:
       REDISENDPOINT: redis:6379
-      JAEGERAGENTENDPOINT: http://jaeger:14268
+  #     JAEGERAGENTENDPOINT: http://jaeger:14268
+      JAEGERAGENTENDPOINT: http://jaeger:14250
     command: ['java -jar app.jar']
 
   redis:
@@ -26,8 +27,11 @@ services:
   jaeger:
     image: jaegertracing/opentelemetry-all-in-one
     ports:
-      - 14268:14268
+  #     - 14268:14268
+      - 14250:14250
       - 16686:16686
+    networks:
+      - net
 
 networks:
   net:
