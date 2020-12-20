@@ -85,8 +85,9 @@ public class JavaHttpServer {
 
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
-      Span span = tracer.spanBuilder("my span").startSpan();
-      try (Scope scope = span.makeCurrent()) {
+//      Span span = tracer.spanBuilder("my span").startSpan();
+      try {
+//      try (Scope scope = span.makeCurrent()) {
         String requestUri = httpExchange.getRequestURI().toString();
         String param = requestUri.substring(requestUri.indexOf(AUTHOR_CONTEXT_PATH) + AUTHOR_CONTEXT_PATH.length());
 
@@ -106,17 +107,21 @@ public class JavaHttpServer {
       } catch (IOException ioe) {
         throw ioe;
       } catch (Exception ex) {
-        span.setStatus(StatusCode.ERROR, ex.getMessage());
+//        span.setStatus(StatusCode.ERROR, ex.getMessage());
         handleResponse(httpExchange, 500, "Server error");
-      } finally {
-        span.end();
+//      } finally {
+//        span.end();
       }
     }
 
     private void handleGet(HttpExchange httpExchange, String param) throws IOException {
       Map<String, String> map;
-      try (Jedis jedis = jedisPool.getResource()) {
+      Span span = tracer.spanBuilder("redis/hgetall").startSpan();
+      try (Scope scope = span.makeCurrent();
+          Jedis jedis = jedisPool.getResource()) {
         map = jedis.hgetAll(getAuthorKey(param));
+      } finally {
+        span.end();
       }
       String response = toJson(map).toString();
       handleResponse(httpExchange, 200, response);
@@ -125,8 +130,12 @@ public class JavaHttpServer {
     private void handlePost(HttpExchange httpExchange, String param) throws IOException {
       JSONObject object = buildBody(httpExchange.getRequestBody());
       Map<String, String> map = toMap(object);
-      try (Jedis jedis = jedisPool.getResource()) {
+      Span span = tracer.spanBuilder("redis/hset").startSpan();
+      try (Scope scope = span.makeCurrent();
+          Jedis jedis = jedisPool.getResource()) {
         jedis.hset(getAuthorKey(param), map);
+      } finally {
+        span.end();
       }
     }
 
