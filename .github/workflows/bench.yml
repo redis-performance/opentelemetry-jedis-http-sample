@@ -23,7 +23,7 @@ jobs:
       run: make build-docker
 
     - name: Start containers
-      run: make run-docker
+      run: make start-docker
 
     - name: Run local k6 test
       uses: grafana/k6-action@v0.2.0
