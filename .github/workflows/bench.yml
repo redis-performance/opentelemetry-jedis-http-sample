@@ -11,7 +11,8 @@ on:
     - main
 
 jobs:
-  docker:
+  k6_load_test:
+    name: k6 Load test
     timeout-minutes: 10
     runs-on: ubuntu-latest
 
