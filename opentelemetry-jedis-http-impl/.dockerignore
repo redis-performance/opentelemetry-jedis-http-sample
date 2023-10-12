@@ -9,3 +9,4 @@ arm/
 powerpc/
 mips/
 .idea/
+**/target/*.*

@@ -1,25 +1,38 @@
-version: '3'
+version: '3.5'
+
 services:
+
+  server:
+    build: opentelemetry-jedis-http-impl/.
+    networks:
+      - net
+    depends_on:
+      - redis
+      - jaeger
+    ports:
+      - 7777:7777
+    environment:
+      REDISENDPOINT: redis:6379
+  #     JAEGERAGENTENDPOINT: http://jaeger:14268
+      JAEGERAGENTENDPOINT: http://jaeger:14250
+    command: ['java -jar app.jar']
+
   redis:
     image: redis:6.0.5
     ports:
-      - 6379:6379/tcp
-
-  # uncomment me after having the Java App Dockerfile 
-  # server:
-  #   build: .
-  #   depends_on:
-  #     - redis
-  #     - jaeger
-  #   ports:
-  #     - 7777:7777
-  #   environment:
-  #     REDISENDPOINT: redis:6379
-  #     JAEGERAGENTENDPOINT: http://jaeger:14268
-  #   command: ['./opentelemetry-jedis-http-sample']
+      - 6379:6379
+    networks:
+      - net
 
   jaeger:
     image: jaegertracing/opentelemetry-all-in-one
     ports:
-      - 14268:14268
+  #     - 14268:14268
+      - 14250:14250
       - 16686:16686
+    networks:
+      - net
+
+networks:
+  net:
+    driver: bridge
