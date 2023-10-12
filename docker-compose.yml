@@ -18,7 +18,7 @@ services:
     command: ['java -javaagent:opentelemetry-javaagent-all.jar -Dotel.exporter=jaeger -Dotel.exporter.jaeger.endpoint=jaeger:14250 -Dotel.exporter.jaeger.service.name=otel-jedis -jar app.jar']
 
   redis:
-    image: redis:6.0.5
+    image: redis:7.2.1
     ports:
       - 6379:6379
     networks:
