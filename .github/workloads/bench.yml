@@ -1,0 +1,35 @@
+name: Test
+
+on:
+  push:
+    branches:
+    - main
+    - features/**
+    - dependabot/**
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  docker:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: build custom containers
+      run: make build-docker
+
+    - name: Start containers
+      run: make run-docker
+
+    - name: Run local k6 test
+      uses: grafana/k6-action@v0.2.0
+      with:
+        filename: ./benchmarks/test.js
+
+    - name: Stop containers
+      if: always()
+      run: stop-docker

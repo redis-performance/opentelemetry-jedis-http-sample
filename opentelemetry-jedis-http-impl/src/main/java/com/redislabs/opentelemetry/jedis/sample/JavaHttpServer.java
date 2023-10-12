@@ -22,8 +22,7 @@ import redis.clients.jedis.JedisPool;
 public class JavaHttpServer {
 
   public static final int HTTP_PORT = 7777;
-
-  public static final String REDIS_HOST = "redis";
+  public static final String REDIS_HOST = System.getProperty("redis-host","redis");
   public static final int REDIS_PORT = 6379;
 
   public static void main(String[] args) throws Exception {
