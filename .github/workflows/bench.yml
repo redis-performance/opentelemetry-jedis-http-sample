@@ -25,10 +25,16 @@ jobs:
     - name: Start containers
       run: make start-docker-lite
 
+    - name: Get K6
+      run: |
+        gpg -k
+        gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
+        apt-get update
+        apt-get install k6
+              
     - name: Run local k6 test
-      uses: grafana/k6-action@v0.2.0
-      with:
-        filename: ./benchmarks/sample-get.js
+      run: make benchmark
 
     - name: Stop containers
       if: always()
