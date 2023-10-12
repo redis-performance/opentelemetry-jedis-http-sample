@@ -11,8 +11,14 @@ benchmark:
 start-docker:
 	@docker-compose -f docker-compose.yml up
 
+start-docker-lite:
+	@docker-compose -f docker-compose-solely-server.yml up -d
+
 stop-docker:
 	@docker-compose -f docker-compose.yml down
+
+stop-docker-lite:
+	@docker-compose -f docker-compose-solely-server.yml down
 
 build-docker:
 	@docker-compose -f docker-compose.yml build

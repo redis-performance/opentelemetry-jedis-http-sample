@@ -23,7 +23,7 @@ jobs:
       run: make build-docker
 
     - name: Start containers
-      run: make start-docker
+      run: make start-docker-lite
 
     - name: Run local k6 test
       uses: grafana/k6-action@v0.2.0
@@ -32,4 +32,4 @@ jobs:
 
     - name: Stop containers
       if: always()
-      run: stop-docker
+      run: stop-docker-lite
