@@ -48,12 +48,16 @@
             <version>${grpc.version}</version>
         </dependency>
         
-        <!--<dependency>
+        <dependency>
             <groupId>io.opentelemetry.javaagent.instrumentation</groupId>
             <artifactId>opentelemetry-javaagent-jedis-3.0</artifactId>
             <version>${opentelemetry.version}</version>
+        </dependency>
+        <!--<dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-instrumentation-api</artifactId>
+            <version>${opentelemetry.version}</version>
         </dependency>-->
-
 
         <dependency>
             <groupId>org.json</groupId>

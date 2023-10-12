@@ -3,17 +3,6 @@ package com.redislabs.opentelemetry.jedis.sample;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.api.trace.TracerProvider;
-import io.opentelemetry.context.Scope;
-import io.opentelemetry.exporter.jaeger.JaegerGrpcSpanExporter;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,41 +26,12 @@ public class JavaHttpServer {
   public static final String REDIS_HOST = "redis";
   public static final int REDIS_PORT = 6379;
 
-  public static final String JAEGER_HOST = "jaeger";
-//  public static final int JAEGER_PORT = 14268;
-  public static final int JAEGER_PORT = 14250;
-
-  static final TracerProvider tracerProvider = OpenTelemetry.getGlobalTracerProvider();
-  static final Tracer tracer = tracerProvider.get("com.redislabs.opentelemetry.jedis.sample.JavaHttpServer");
-
   public static void main(String[] args) throws Exception {
-    setupJaegerExporter();
     HttpServer server = HttpServer.create(new InetSocketAddress(HTTP_PORT), 0);
     server.createContext(AuthorHandler.AUTHOR_CONTEXT_PATH, new AuthorHandler());
     server.setExecutor(null); // creates a default executor
     server.start();
     System.out.println("HTTP server started.");
-  }
-
-  private static void setupJaegerExporter() {
-    // Create a channel towards Jaeger end point
-    ManagedChannel jaegerChannel = ManagedChannelBuilder.forAddress(JAEGER_HOST, JAEGER_PORT).usePlaintext().build();
-    // Export traces to Jaeger
-    // Export traces to Jaeger
-    JaegerGrpcSpanExporter jaegerExporter
-        = JaegerGrpcSpanExporter.builder()
-            .setServiceName("otel-jedis")
-            .setChannel(jaegerChannel)
-            .setDeadlineMs(30000)
-            .build();
-
-    // Set to process the spans by the Jaeger Exporter
-    OpenTelemetrySdk.getGlobalTracerManagement().addSpanProcessor(SimpleSpanProcessor.builder(jaegerExporter).build());
-  }
-
-  // graceful shutdown
-  public static void shutdown() {
-    OpenTelemetrySdk.getGlobalTracerManagement().shutdown();
   }
 
   private static class AuthorHandler implements HttpHandler {
@@ -85,9 +45,7 @@ public class JavaHttpServer {
 
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
-//      Span span = tracer.spanBuilder("my span").startSpan();
       try {
-//      try (Scope scope = span.makeCurrent()) {
         String requestUri = httpExchange.getRequestURI().toString();
         String param = requestUri.substring(requestUri.indexOf(AUTHOR_CONTEXT_PATH) + AUTHOR_CONTEXT_PATH.length());
 
@@ -107,21 +65,14 @@ public class JavaHttpServer {
       } catch (IOException ioe) {
         throw ioe;
       } catch (Exception ex) {
-//        span.setStatus(StatusCode.ERROR, ex.getMessage());
         handleResponse(httpExchange, 500, "Server error");
-//      } finally {
-//        span.end();
       }
     }
 
     private void handleGet(HttpExchange httpExchange, String param) throws IOException {
       Map<String, String> map;
-      Span span = tracer.spanBuilder("redis/hgetall").startSpan();
-      try (Scope scope = span.makeCurrent();
-          Jedis jedis = jedisPool.getResource()) {
+      try (Jedis jedis = jedisPool.getResource()) {
         map = jedis.hgetAll(getAuthorKey(param));
-      } finally {
-        span.end();
       }
       String response = toJson(map).toString();
       handleResponse(httpExchange, 200, response);
@@ -130,12 +81,8 @@ public class JavaHttpServer {
     private void handlePost(HttpExchange httpExchange, String param) throws IOException {
       JSONObject object = buildBody(httpExchange.getRequestBody());
       Map<String, String> map = toMap(object);
-      Span span = tracer.spanBuilder("redis/hset").startSpan();
-      try (Scope scope = span.makeCurrent();
-          Jedis jedis = jedisPool.getResource()) {
+      try (Jedis jedis = jedisPool.getResource()) {
         jedis.hset(getAuthorKey(param), map);
-      } finally {
-        span.end();
       }
     }
 
