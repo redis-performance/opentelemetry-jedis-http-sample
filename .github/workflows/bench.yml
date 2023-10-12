@@ -28,8 +28,8 @@ jobs:
     - name: Run local k6 test
       uses: grafana/k6-action@v0.2.0
       with:
-        filename: ./benchmarks/test.js
+        filename: ./benchmarks/sample-get.js
 
     - name: Stop containers
       if: always()
-      run: stop-docker-lite
+      run: make stop-docker-lite
