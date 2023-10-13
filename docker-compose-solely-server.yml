@@ -1,0 +1,26 @@
+version: '3.5'
+
+services:
+
+  server:
+    build: opentelemetry-jedis-http-impl/.
+    networks:
+      - net
+    depends_on:
+      - redis
+    ports:
+      - 7777:7777
+    environment:
+      REDISENDPOINT: redis:6379
+    command: ['java -jar app.jar']
+
+  redis:
+    image: redis:7.2.1
+    ports:
+      - 6379:6379
+    networks:
+      - net
+
+networks:
+  net:
+    driver: bridge
