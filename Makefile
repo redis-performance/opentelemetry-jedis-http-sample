@@ -9,17 +9,17 @@ benchmark:
 	k6 run benchmarks/sample-get.js
 
 start-docker:
-	@docker-compose -f docker-compose.yml up
+	@docker compose -f docker-compose.yml up
 
 start-docker-lite:
-	@docker-compose -f docker-compose-solely-server.yml up -d
+	@docker compose -f docker-compose-solely-server.yml up -d
 
 stop-docker:
-	@docker-compose -f docker-compose.yml down
+	@docker compose -f docker-compose.yml down
 
 stop-docker-lite:
-	@docker-compose -f docker-compose-solely-server.yml down
+	@docker compose -f docker-compose-solely-server.yml down
 
 build-docker:
-	@docker-compose -f docker-compose.yml build
+	@docker compose -f docker-compose.yml build
 
